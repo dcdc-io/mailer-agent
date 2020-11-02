@@ -14,7 +14,8 @@ const emailSafe = (str: string) => {
     }
 }
 
-const { DOMAIN = "advocat.group",
+const {
+    DOMAIN = "localhost",
     MESSAGE_DELAY = "10000",
     RECOVERY_TIME = "60000",
     EMAIL_FROM = "advocat. <advocat@dcdc.io>",
@@ -24,11 +25,12 @@ const { DOMAIN = "advocat.group",
     SMTP_USER,
     MAILER_USER,
     MAILER_PASS,
-    PROTOCOL,
-    PORT } = process.env
+    PROTOCOL = "http",
+    PORT
+} = process.env
 
 const wellKnownReplacements = {
-    domain: DOMAIN 
+    domain: DOMAIN
 }
 
 const loop = async () => {
@@ -41,7 +43,7 @@ const loop = async () => {
                 pass: SMTP_PASS
             }
         })
-        const messages = await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/_all_docs?include_docs=true`).then(res => res.json()).then(data => data.rows.map((row:any) => row.doc))
+        const messages = await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/_all_docs?include_docs=true`).then(res => res.json()).then(data => data.rows.map((row: any) => row.doc))
         for (let doc of messages) {
             try {
                 if (doc.status === "sent" || doc.type !== "email") {
@@ -80,7 +82,7 @@ const loop = async () => {
         }
         setTimeout(loop, parseInt(MESSAGE_DELAY))
     } catch (error) {
-        console.error("an error occured...")
+        console.error(`[ERROR]: ${error}`)
         setTimeout(loop, parseInt(RECOVERY_TIME))
     }
 }

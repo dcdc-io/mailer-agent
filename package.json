@@ -1,0 +1,24 @@
+{
+  "name": "mailer-agent",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:dcdc-io/mailer-agent.git",
+  "author": "Ben Babik <work@benjaminbabik.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node-fetch": "^2.5.7",
+    "dotenv": "^8.2.0",
+    "front-matter": "^4.0.2",
+    "html-to-text": "^6.0.0",
+    "markdown-it": "^12.0.2",
+    "node-email-verification": "^0.0.0",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^5.1.2",
+    "@types/markdown-it": "^10.0.2",
+    "@types/node": "^14.14.6",
+    "@types/nodemailer": "^6.4.0",
+    "typescript": "^4.0.5"
+  }
+}

@@ -2,12 +2,17 @@ import { config } from 'dotenv'
 import { findTemplate, compileTemplate } from "./lib"
 import nodemailer from 'nodemailer'
 import fetch from 'node-fetch'
+import { validate } from 'email-validator'
 
 config()
 
-const emailSafe = (str: string) => { if (require('./rx.js').email.test(str.split("<").reverse()[0].trim().replace(">", ""))) { return str } else { throw "invalid email address" } }
-
-const randomString = () => require('crypto').randomBytes(16).toString("hex")
+const emailSafe = (str: string) => {
+    if (validate(str.split("<").reverse()[0].trim().replace(">", ""))) {
+        return str
+    } else {
+        throw "invalid email address"
+    }
+}
 
 const { DOMAIN = "advocat.group",
     MESSAGE_DELAY = "10000",
@@ -23,7 +28,7 @@ const { DOMAIN = "advocat.group",
     PORT } = process.env
 
 const wellKnownReplacements = {
-    domain: DOMAIN
+    domain: DOMAIN 
 }
 
 const loop = async () => {
@@ -36,16 +41,16 @@ const loop = async () => {
                 pass: SMTP_PASS
             }
         })
-        const messages = await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/_all_docs?include_docs=true`).then(res => res.json()).then(data => data.rows)
-        for (let { doc } of messages) {
+        const messages = await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/_all_docs?include_docs=true`).then(res => res.json()).then(data => data.rows.map((row:any) => row.doc))
+        for (let doc of messages) {
             try {
                 if (doc.status === "sent" || doc.type !== "email") {
                     continue
                 }
                 const template = await findTemplate(doc.template)
                 const compiled = await compileTemplate(template, {
-                    ...doc.params,
-                    ...wellKnownReplacements
+                    ...wellKnownReplacements,
+                    ...doc.params
                 })
                 doc.status = "sent"
                 // TODO: after sent actions

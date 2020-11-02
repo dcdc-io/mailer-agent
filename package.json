@@ -8,10 +8,10 @@
   "dependencies": {
     "@types/node-fetch": "^2.5.7",
     "dotenv": "^8.2.0",
+    "email-validator": "^2.0.4",
     "front-matter": "^4.0.2",
     "html-to-text": "^6.0.0",
     "markdown-it": "^12.0.2",
-    "node-email-verification": "^0.0.0",
     "node-fetch": "^2.6.1"
   },
   "devDependencies": {

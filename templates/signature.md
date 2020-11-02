@@ -2,6 +2,6 @@
 
 The {product} development team,
 
-team@dcdc.io
+support@{domain}
 
 [{domain}](https://{domain})

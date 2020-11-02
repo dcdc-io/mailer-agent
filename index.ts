@@ -19,19 +19,20 @@ const {
     PRODUCT = "mailer",
     MESSAGE_DELAY = "1000",
     RECOVERY_TIME = "5000",
-    EMAIL_FROM = "DCDC <team@dcdc.io>",
+    EMAIL_FROM = "localhost <mail@localhost.local>",
     SMTP_HOST = "localhost",
     SMTP_PASS,
     SMTP_PORT = "25",
     SMTP_USER,
-    PORT = "6379",
-    NAMESPACE = "rsmq"
+    REDIS_HOST = "localhost",
+    REDIS_PORT = "6379",
+    RSMQ_NAMESPACE = "rsmq"
 } = process.env
 
 const rsmq = new RedisSMQ({
-    host: DOMAIN,
-    port: parseInt(PORT),
-    ns: NAMESPACE
+    host: REDIS_HOST,
+    port: parseInt(REDIS_PORT),
+    ns: RSMQ_NAMESPACE
 })
 
 rsmq.createQueueAsync({ qname: "mail_outbox" }).catch(e => { })
@@ -42,7 +43,7 @@ const wellKnownReplacements = {
     product: PRODUCT,
 }
 
-type MessageTemplate = {
+type Message = {
     template: string
     params: Record<string, string>
     to: { name: string, email: string } | string
@@ -62,14 +63,13 @@ const loop = async () => {
 
         if ((message as QueueMessage).id) {
             try {
-                const doc: MessageTemplate = JSON.parse((message as any).message)
+                const doc: Message = JSON.parse((message as any).message)
                 console.log(`[MESSAGE]: ${JSON.stringify(doc)}`)
                 const template = await findTemplate(doc.template)
                 const compiled = await compileTemplate(template, {
                     ...wellKnownReplacements,
                     ...doc.params
                 })
-                console.log(compiled)
                 const info = await transport.sendMail({
                     from: EMAIL_FROM,
                     to: emailSafe((doc.to as any).email || doc.to),
@@ -77,7 +77,7 @@ const loop = async () => {
                     text: compiled.text,
                     html: compiled.body
                 })
-                console.log(info)
+                console.log(`[SENT]: ${info}`)
             } catch (error) {
                 console.error(`[ERROR]: ${error}`)
                 await rsmq.sendMessageAsync({

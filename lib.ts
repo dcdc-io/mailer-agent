@@ -36,7 +36,7 @@ async function asyncStringReplace(str: string, regex: RegExp, aReplacer: Replace
 
 export async function findTemplate(name: string): Promise<Template> {
     try {
-        const dir = process.env.TEMPLATE_PATH || join(__dirname, "templates")
+        const dir = process.env.TEMPLATE_PATH || join(process.cwd(), "templates")
         const source = readFileSync(join(dir, `${name}.md`)).toString()
         return {
             name,

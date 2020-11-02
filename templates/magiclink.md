@@ -4,7 +4,7 @@ subject: Sign In to advocat.
 
 ### Hello {name},
 
-We had a request to sign in to advocat. using your email **{email}**.
+We had a request to sign in to {product}. using your email **{email}**.
 
 Click {url} to sign in.
 

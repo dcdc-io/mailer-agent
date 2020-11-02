@@ -1,7 +1,7 @@
 <hr/>
 
-The advocat. development team,
+The {product} development team,
 
-advocat@dcdc.io
+team@dcdc.io
 
-[dcdc.io](https://dcdc.io) - [advocat.group](https://advocat.group)
+[{domain}](https://{domain})

@@ -2,7 +2,7 @@
 subject: Your {domain} Registration
 ---
 
-### Thank you from advocat.
+### Thank you from {product}
 
 Thank you {name}.
 

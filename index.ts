@@ -1,8 +1,8 @@
 import { config } from 'dotenv'
 import { findTemplate, compileTemplate } from "./lib"
 import nodemailer from 'nodemailer'
-import fetch from 'node-fetch'
 import { validate } from 'email-validator'
+import RedisSMQ, { QueueMessage } from 'rsmq'
 
 config()
 
@@ -16,21 +16,36 @@ const emailSafe = (str: string) => {
 
 const {
     DOMAIN = "localhost",
-    MESSAGE_DELAY = "10000",
-    RECOVERY_TIME = "60000",
-    EMAIL_FROM = "advocat. <advocat@dcdc.io>",
+    PRODUCT = "mailer",
+    MESSAGE_DELAY = "1000",
+    RECOVERY_TIME = "5000",
+    EMAIL_FROM = "DCDC <team@dcdc.io>",
     SMTP_HOST = "localhost",
     SMTP_PASS,
     SMTP_PORT = "25",
     SMTP_USER,
-    MAILER_USER,
-    MAILER_PASS,
-    PROTOCOL = "http",
-    PORT
+    PORT = "6379",
+    NAMESPACE = "rsmq"
 } = process.env
 
+const rsmq = new RedisSMQ({
+    host: DOMAIN,
+    port: parseInt(PORT),
+    ns: NAMESPACE
+})
+
+rsmq.createQueueAsync({ qname: "mail_outbox" }).catch(e => { })
+rsmq.createQueueAsync({ qname: "error" }).catch(e => { })
+
 const wellKnownReplacements = {
-    domain: DOMAIN
+    domain: DOMAIN,
+    product: PRODUCT,
+}
+
+type MessageTemplate = {
+    template: string
+    params: Record<string, string>
+    to: { name: string, email: string } | string
 }
 
 const loop = async () => {
@@ -43,41 +58,37 @@ const loop = async () => {
                 pass: SMTP_PASS
             }
         })
-        const messages = await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/_all_docs?include_docs=true`).then(res => res.json()).then(data => data.rows.map((row: any) => row.doc))
-        for (let doc of messages) {
+        const message = await rsmq.receiveMessageAsync({ qname: "mail_outbox" })
+
+        if ((message as QueueMessage).id) {
             try {
-                if (doc.status === "sent" || doc.type !== "email") {
-                    continue
-                }
+                const doc: MessageTemplate = JSON.parse((message as any).message)
+                console.log(`[MESSAGE]: ${JSON.stringify(doc)}`)
                 const template = await findTemplate(doc.template)
                 const compiled = await compileTemplate(template, {
                     ...wellKnownReplacements,
                     ...doc.params
                 })
-                doc.status = "sent"
-                // TODO: after sent actions
-                // TODO: send mail
+                console.log(compiled)
                 const info = await transport.sendMail({
                     from: EMAIL_FROM,
-                    to: emailSafe(doc.to.email || doc.to),
+                    to: emailSafe((doc.to as any).email || doc.to),
                     subject: compiled.metadata.subject,
                     text: compiled.text,
                     html: compiled.body
                 })
                 console.log(info)
-                await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/${encodeURIComponent(doc._id)}?conflict=true`, {
-                    method: "PUT",
-                    body: JSON.stringify(doc),
-                    headers: { 'Content-Type': 'application/json' }
-                })
             } catch (error) {
-                doc.status = "error"
-                console.error(error)
-                await fetch(`${PROTOCOL}://${MAILER_USER}:${MAILER_PASS}@${DOMAIN}${PORT ? `:${PORT}` : ""}/db/mail_outbox/${encodeURIComponent(doc._id)}?conflict=true`, {
-                    method: "PUT",
-                    body: JSON.stringify(doc),
-                    headers: { 'Content-Type': 'application/json' }
+                console.error(`[ERROR]: ${error}`)
+                await rsmq.sendMessageAsync({
+                    qname: "error", message: JSON.stringify({
+                        message: message,
+                        qname: "mail_outbox",
+                        error: JSON.stringify(error)
+                    })
                 })
+            } finally {
+                await rsmq.deleteMessageAsync({ qname: "mail_outbox", id: (message as QueueMessage).id })
             }
         }
         setTimeout(loop, parseInt(MESSAGE_DELAY))

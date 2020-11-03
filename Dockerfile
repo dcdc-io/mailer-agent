@@ -14,7 +14,7 @@ RUN yarn
 
 COPY lib.ts .
 COPY index.ts .
-COPY templates .
+COPY ./templates/ ./templates/
 
 RUN yarn tsc
 

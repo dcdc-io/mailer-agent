@@ -1,4 +1,4 @@
-FROM node
+FROM node:alpine
 
 ENV ENV_NAME dev
 ENV EGG_SERVER_ENV dev

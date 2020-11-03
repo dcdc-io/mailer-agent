@@ -1,5 +1,5 @@
 ---
-subject: Sign In to advocat.
+subject: Sign In to {product}.
 ---
 
 ### Hello {name},
